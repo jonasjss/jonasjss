@@ -1,9 +1,3 @@
-### Hi there 👋
-
-<!--
-**jonasjss/jonasjss** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-
-Here are some ideas to get you started:
 # 💫 About Me:
 💻 | Computer Technician by Instituto Federal do Amazonas - IFAM.<br>🎓 | Currently studying Computer Engineering at the UNINORTE.<br>🔵 | Connect with me a https://www.linkedin.com/in/jonas-santos-jss/
 
