@@ -1,5 +1,5 @@
 # 💫 About Me:
-💻| Técnico em Informática pelo Instituto Federal do Amazonas - IFAM.<br>🎓| Atualmente cursando Engenharia da Computação na UNINORTE.<br>🔵| Conecte-se comigo a https://www.linkedin.com/in/jonas-santos-jss/
+💻| Computer Technician by Instituto Federal do Amazonas - IFAM.<br>🎓| Currently studying Computer Engineering at the UNINORTE.<br>🔵| Connect with me at https://www.linkedin.com/in/jonas-santos-jss/
 
 
 ## 🌐 Socials:
