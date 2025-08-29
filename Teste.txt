@@ -1,0 +1,37 @@
+DescriptionFormatted =
+VAR Heading =
+    "<h6 style='font-family: Segoe UI Semibold; font-size: 12px; color: #fff; margin-bottom: 12px; text-align: center; background-color: #1A3D51; padding: 0px'>Description</h6>"
+
+VAR TextoOriginal = 'MR KPI'[Description]
+
+-- Quebra por vírgula para caçar SKUs
+VAR Palavras =
+    ADDCOLUMNS (
+        SELECTCOLUMNS (
+            GENERATESERIES ( 1; PATHLENGTH ( SUBSTITUTE ( TextoOriginal; ","; "|" ) ) );
+            "Palavra"; TRIM ( PATHITEM ( SUBSTITUTE ( TextoOriginal; ","; "|" ); [Value] ) )
+        );
+        "Len"; LEN ( [Palavra] )
+    )
+
+-- Mantém apenas os termos com 3 caracteres (SKUs)
+VAR ApenasSKUs =
+    FILTER ( Palavras; [Len] = 3 )
+
+-- Junta os SKUs em texto separado por vírgula
+VAR ListaSKUs =
+    CONCATENATEX ( ApenasSKUs; [Palavra]; ", " )
+
+VAR HighlightedText =
+    "<span style='color: #252423; font-family: Segoe UI Semibold; font-size: 12px;'>" &
+    TextoOriginal & "</span>"
+
+VAR SKUsHTML =
+    IF (
+        NOT ISBLANK ( ListaSKUs );
+        "<br><b>SKUs Impactados:</b> " & ListaSKUs;
+        ""
+    )
+
+RETURN
+    Heading & HighlightedText & "<br>" & SKUsHTML
