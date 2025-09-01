@@ -1,25 +1,76 @@
-SKUs_HTML =
+Description_HTML =
 VAR _desc = TRIM( 'Sheet1'[Description] )
-VAR _perRow = 3  -- <- mude aqui para 2,3,4 por linha
--- normaliza espaços e converte vírgulas em pipe
-VAR _clean1 = SUBSTITUTE( _desc, ", ", "," )
-VAR _list = SUBSTITUTE( _clean1, ",", "|" )
 
--- número de itens (0 se vazio)
-VAR _n = IF( LEN( _list ) = 0, 0, PATHLENGTH( _list ) )
+-- procurar por rótulos comuns (SEARCH retorna 0 quando não encontra)
+VAR p1 = SEARCH( "SKUs Impacted:", _desc, 1, 0 )
+VAR p2 = SEARCH( "SKUs Impacted",  _desc, 1, 0 )
+VAR p3 = SEARCH( "SKUs:",            _desc, 1, 0 )
+VAR p4 = SEARCH( "SKU:",             _desc, 1, 0 )
+VAR p5 = SEARCH( "SKUs Impactados:", _desc, 1, 0 )
+VAR p6 = SEARCH( "SKUs Impactados",  _desc, 1, 0 )
 
-RETURN
-IF(
-    _n = 0,
-    BLANK(),
-    VAR _rows =
+VAR _pos =
+    IF( p1 > 0, p1,
+    IF( p2 > 0, p2,
+    IF( p3 > 0, p3,
+    IF( p4 > 0, p4,
+    IF( p5 > 0, p5,
+    IF( p6 > 0, p6, 0 ) ) ) ) ) )
+
+VAR _lenKeyword =
+    IF( p1 > 0, LEN("SKUs Impacted:"),
+    IF( p2 > 0, LEN("SKUs Impacted"),
+    IF( p3 > 0, LEN("SKUs:"),
+    IF( p4 > 0, LEN("SKU:"),
+    IF( p5 > 0, LEN("SKUs Impactados:"),
+    IF( p6 > 0, LEN("SKUs Impactados"), 0 ) ) ) ) ) )
+
+-- parte antes (texto original, mantido como estava)
+VAR _nonSKU = IF( _pos > 0, TRIM( LEFT( _desc, _pos - 1 ) ), BLANK() )
+
+-- parte após o rótulo -> raw de SKUs
+VAR _skuRaw = IF( _pos > 0, TRIM( MID( _desc, _pos + _lenKeyword, LEN( _desc ) ) ), "" )
+
+-- remover possível caractere inicial ":" ou "-" deixado após o rótulo
+VAR _skuCleanLead =
+    IF(
+        OR( LEFT( _skuRaw, 1 ) = ":", LEFT( _skuRaw, 1 ) = "-" ),
+        TRIM( MID( _skuRaw, 2, LEN( _skuRaw ) - 1 ) ),
+        _skuRaw
+    )
+
+-- normaliza separadores e espaços
+VAR _c1 = SUBSTITUTE( _skuCleanLead, ";", "," )
+VAR _c2 = SUBSTITUTE( _c1, " / ", "," )
+VAR _c3 = SUBSTITUTE( _c2, " ,", "," )
+VAR _c4 = SUBSTITUTE( _c3, ", ", "," )
+VAR _list = SUBSTITUTE( _c4, ",", "|" )
+
+VAR _n = IF( LEN( TRIM( _list ) ) = 0, 0, PATHLENGTH( _list ) )
+
+-- evita GENERATESERIES com 0
+VAR _rows =
+    IF(
+        _n = 0,
+        BLANK(),
         ADDCOLUMNS(
             GENERATESERIES( 1, _n ),
             "SKU", TRIM( PATHITEM( _list, [Value], TEXT ) )
         )
-    VAR _groupsCount = INT( ( _n - 1 ) / _perRow ) + 1
-    VAR _groupSeries = GENERATESERIES( 1, _groupsCount )
-    VAR _skusTable =
+    )
+
+-- número por linha (mude aqui se quiser)
+VAR _perRow = 3
+
+VAR _groupsCount = IF( _n = 0, 0, INT( ( _n - 1 ) / _perRow ) + 1 )
+
+VAR _groupSeries = IF( _groupsCount = 0, BLANK(), GENERATESERIES( 1, _groupsCount ) )
+
+-- monta a mini-tabela (grade) dos SKUs
+VAR _skusTable =
+    IF(
+        _n = 0,
+        "",
         "<table style='width:100%;border-collapse:collapse;font-size:11px'>" &
         CONCATENATEX(
             _groupSeries,
@@ -27,12 +78,27 @@ IF(
             VAR rowCells =
                 CONCATENATEX(
                     FILTER( _rows, INT( ( [Value] - 1 ) / _perRow ) + 1 = g ),
-                    "<td style='padding:4px;border:1px solid #ddd;text-align:center'>" & [SKU] & "</td>",
+                    "<td style='padding:6px;border:1px solid #ddd;text-align:center'>" & [SKU] & "</td>",
                     ""
                 )
             RETURN "<tr>" & rowCells & "</tr>",
             ""
         ) &
         "</table>"
-    RETURN _skusTable
-)
+    )
+
+-- junta texto original (antes) + grade (apenas se houver SKUs)
+VAR _finalHtml =
+    IF(
+        _pos = 0,
+        -- não encontrou rótulo: devolve descrição original sem alteração
+        _desc,
+        -- encontrou: mostra o texto antes (se houver) e a grade de SKUs
+        "<div style='font-family:Segoe UI;font-size:12px'>" &
+        IF( NOT( ISBLANK( _nonSKU ) ), "<div style='margin-bottom:6px'>" & _nonSKU & "</div>", "" ) &
+        _skusTable &
+        "</div>"
+    )
+
+RETURN
+IF( LEN( TRIM( _finalHtml ) ) = 0, BLANK(), _finalHtml )
