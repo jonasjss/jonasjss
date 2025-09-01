@@ -1,33 +1,38 @@
 SKUs_HTML =
-VAR _Impact = 'Sheet1'[SKUs Impacted]
-VAR _list   = SUBSTITUTE ( _Impact, ",", "|" )
-VAR _n      = PATHLENGTH ( _list )
-VAR _rows =
-    ADDCOLUMNS (
-        GENERATESERIES ( 1, _n ),
-        "SKU", TRIM ( PATHITEM ( _list, [Value], TEXT ) )
-    )
+VAR _desc = TRIM( 'Sheet1'[Description] )
+VAR _perRow = 3  -- <- mude aqui para 2,3,4 por linha
+-- normaliza espaços e converte vírgulas em pipe
+VAR _clean1 = SUBSTITUTE( _desc, ", ", "," )
+VAR _list = SUBSTITUTE( _clean1, ",", "|" )
 
--- agrupando de 3 em 3
-VAR _groups =
-    ADDCOLUMNS (
-        _rows,
-        "RowGroup", INT ( ( [Value] - 1 ) / 3 ) + 1
-    )
+-- número de itens (0 se vazio)
+VAR _n = IF( LEN( _list ) = 0, 0, PATHLENGTH( _list ) )
 
-VAR _skusTable =
-    "<table style='width:100%;border-collapse:collapse;font-size:11px'>" &
-    CONCATENATEX (
-        SUMMARIZE ( _groups, [RowGroup] ),
-        "<tr>" &
-            CONCATENATEX (
-                FILTER ( _groups, [RowGroup] = EARLIER ( [RowGroup] ) ),
-                "<td style='padding:4px;border:1px solid #ddd;text-align:center'>" & [SKU] & "</td>",
-                ""
-            ) &
-        "</tr>",
-        ""
-    ) &
-    "</table>"
 RETURN
-IF ( ISBLANK ( _Impact ), BLANK (), _skusTable )
+IF(
+    _n = 0,
+    BLANK(),
+    VAR _rows =
+        ADDCOLUMNS(
+            GENERATESERIES( 1, _n ),
+            "SKU", TRIM( PATHITEM( _list, [Value], TEXT ) )
+        )
+    VAR _groupsCount = INT( ( _n - 1 ) / _perRow ) + 1
+    VAR _groupSeries = GENERATESERIES( 1, _groupsCount )
+    VAR _skusTable =
+        "<table style='width:100%;border-collapse:collapse;font-size:11px'>" &
+        CONCATENATEX(
+            _groupSeries,
+            VAR g = [Value]
+            VAR rowCells =
+                CONCATENATEX(
+                    FILTER( _rows, INT( ( [Value] - 1 ) / _perRow ) + 1 = g ),
+                    "<td style='padding:4px;border:1px solid #ddd;text-align:center'>" & [SKU] & "</td>",
+                    ""
+                )
+            RETURN "<tr>" & rowCells & "</tr>",
+            ""
+        ) &
+        "</table>"
+    RETURN _skusTable
+)
