@@ -1,79 +1,103 @@
-Description_HTML =
-VAR _desc = TRIM ( 'Sheet1'[Description] )
+Description_HTML = 
+VAR Texto = 'Sheet1'[Descriprition]
+VAR ImpactTag = "impacted:"
 
--- procura por rótulos
-VAR p = 
-    MAXX ( 
-        {
-            ROW ( "pos", SEARCH ( "SKUs Impacted:", _desc, 1, 0 ), "len", LEN ( "SKUs Impacted:" ) ),
-            ROW ( "pos", SEARCH ( "SKUs Impacted",  _desc, 1, 0 ), "len", LEN ( "SKUs Impacted" ) ),
-            ROW ( "pos", SEARCH ( "SKUs:", _desc, 1, 0 ), "len", LEN ( "SKUs:" ) ),
-            ROW ( "pos", SEARCH ( "SKU:",  _desc, 1, 0 ), "len", LEN ( "SKU:" ) ),
-            ROW ( "pos", SEARCH ( "SKUs Impactados:", _desc, 1, 0 ), "len", LEN ( "SKUs Impactados:" ) ),
-            ROW ( "pos", SEARCH ( "SKUs Impactados",  _desc, 1, 0 ), "len", LEN ( "SKUs Impactados" ) )
-        },
-        [pos]
+-- Divide o texto em blocos; cada "impacted:" inicia um novo bloco
+VAR Partes     = SUBSTITUTE(Texto, ImpactTag, "|" & ImpactTag)
+VAR NumBlocos  = PATHLENGTH(Partes)
+
+VAR Resultado =
+    CONCATENATEX(
+        GENERATESERIES(1, NumBlocos),
+        VAR Bloco  = PATHITEM(Partes, [Value], TEXT)
+        VAR PosImp = SEARCH(ImpactTag, Bloco, 1, BLANK())
+
+        VAR SaidaBloco =
+            IF(
+                NOT ISBLANK(PosImp),
+                VAR Antes     = LEFT(Bloco, PosImp + LEN(ImpactTag) - 1)
+                VAR Depois    = MID(Bloco, PosImp + LEN(ImpactTag), LEN(Bloco))
+                VAR LenDepois = LEN(Depois & "")
+
+                -- Posição do fim da lista dentro do bloco (robusto contra BLANK/0)
+                VAR PosNextBlk0 =
+                    IF(LenDepois > 0, SEARCH("[", Depois, 1, LenDepois + 1), LenDepois + 1)
+
+                VAR PosSpace0 =
+                    IF(
+                        LenDepois > 1,
+                        VAR Tmp =
+                            ADDCOLUMNS(
+                                GENERATESERIES(2, LenDepois),
+                                "Char", MID(Depois, [Value], 1),
+                                "PrevChar", MID(Depois, [Value] - 1, 1)
+                            )
+                        VAR P = MINX(FILTER(Tmp, [Char] = " " && [PrevChar] <> ","), [Value])
+                        RETURN IF(ISBLANK(P), LenDepois + 1, P),
+                        LenDepois + 1
+                    )
+
+                VAR Fim0 = MIN(PosNextBlk0, PosSpace0)
+                VAR Fim  = MAX(1, COALESCE(Fim0, LenDepois + 1))   -- nunca < 1
+
+                -- Parte da lista e parte restante (sem estourar índices)
+                VAR SkusRaw =
+                    IF(LenDepois > 0 && Fim > 1, TRIM(LEFT(Depois, Fim - 1)))
+                VAR Cauda =
+                    IF(
+                        LenDepois > 0 && Fim <= LenDepois,
+                        MID(Depois, Fim, LenDepois - Fim + 1),
+                        BLANK()
+                    )
+
+                -- Normalização da lista de SKUs
+                VAR s1 = SUBSTITUTE(SkusRaw, UNICHAR(10), ",")
+                VAR s2 = SUBSTITUTE(s1, UNICHAR(13), ",")
+                VAR s3 = SUBSTITUTE(s2, ";", ",")
+                VAR s4 = SUBSTITUTE(s3, ".", ",")
+                VAR s5 = SUBSTITUTE(s4, " ", "")
+                VAR s6 = SUBSTITUTE(s5, ",,", ",")
+                VAR SkusLimpo =
+                    IF(NOT ISBLANK(s6), IF(RIGHT(s6, 1) = ",", LEFT(s6, LEN(s6) - 1), s6))
+
+                VAR PathStr = IF(NOT ISBLANK(SkusLimpo), SUBSTITUTE(SkusLimpo, ",", "|"))
+                VAR N = IF(NOT ISBLANK(PathStr), PATHLENGTH(PathStr), 0)
+
+                -- Tabela 5×N
+                VAR Tabela =
+                    IF(
+                        N > 0,
+                        VAR Seq =
+                            ADDCOLUMNS(
+                                GENERATESERIES(1, N),
+                                "SKU",  PATHITEM(PathStr, [Value], TEXT),
+                                "Open", IF(MOD([Value] - 1, 5) = 0, "<tr>", ""),
+                                "Close",IF(MOD([Value], 5) = 0, "</tr>", "")
+                            )
+                        VAR Cellss =
+                            CONCATENATEX(
+                                Seq,
+                                [Open] &
+                                "<td style='border:1px solid #d0d0d0;padding:4px 8px;text-align:center;white-space:nowrap'>" &
+                                [SKU] & "</td>" &
+                                [Close],
+                                ""
+                            )
+                        VAR FechaResto = IF(MOD(N, 5) <> 0, "</tr>", "")
+                        RETURN
+                            "<table style='border-collapse:collapse;margin:6px 0;font-size:12px'><tbody>" &
+                            Cellss & FechaResto &
+                            "</tbody></table>"
+                    )
+
+                RETURN Antes & Tabela & Cauda,   -- bloco com impacted:
+                Bloco                              -- bloco sem impacted: fica igual
+            )
+        RETURN SaidaBloco,
+        ""
     )
 
-VAR _pos = IF ( ISBLANK ( p ), 0, p )
-VAR _lenKeyword =
-    LOOKUPVALUE ( [len],
-        { 
-            ROW ( "pos", SEARCH ( "SKUs Impacted:", _desc, 1, 0 ), "len", LEN ( "SKUs Impacted:" ) ),
-            ROW ( "pos", SEARCH ( "SKUs Impacted",  _desc, 1, 0 ), "len", LEN ( "SKUs Impacted" ) ),
-            ROW ( "pos", SEARCH ( "SKUs:", _desc, 1, 0 ), "len", LEN ( "SKUs:" ) ),
-            ROW ( "pos", SEARCH ( "SKU:",  _desc, 1, 0 ), "len", LEN ( "SKU:" ) ),
-            ROW ( "pos", SEARCH ( "SKUs Impactados:", _desc, 1, 0 ), "len", LEN ( "SKUs Impactados:" ) ),
-            ROW ( "pos", SEARCH ( "SKUs Impactados",  _desc, 1, 0 ), "len", LEN ( "SKUs Impactados" ) )
-        },
-        [pos], _pos,
-        [len]
-    )
-
-VAR _nonSKU = IF ( _pos > 0, TRIM ( LEFT ( _desc, _pos - 1 ) ), BLANK () )
-VAR _skuRaw = IF ( _pos > 0, TRIM ( MID ( _desc, _pos + _lenKeyword, LEN ( _desc ) ) ), "" )
-VAR _skuClean = SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( SUBSTITUTE ( _skuRaw, ";", "," ), " / ", "," ), " ,", "," ), ", ", "," ), ",", "|" )
-
-VAR _n = IF ( LEN ( TRIM ( _skuClean ) ) = 0, 0, PATHLENGTH ( _skuClean ) )
-VAR _rows =
-    SELECTCOLUMNS (
-        GENERATESERIES ( 1, _n ),
-        "Idx", [Value],
-        "SKU", TRIM ( PATHITEM ( _skuClean, [Value], TEXT ) )
-    )
-
-VAR _perRow = 3
-VAR _groupsCount = IF ( _n = 0, 0, INT ( ( _n - 1 ) / _perRow ) + 1 )
-VAR _groups = SELECTCOLUMNS ( GENERATESERIES ( 1, _groupsCount ), "Grp", [Value] )
-
-VAR _skusTable =
-    IF (
-        _n = 0,
-        "",
-        "<table style='width:100%;border-collapse:collapse;font-size:11px'>" &
-        CONCATENATEX (
-            _groups,
-            VAR g = [Grp]
-            VAR rowCells =
-                CONCATENATEX (
-                    FILTER ( _rows, INT ( ( [Idx] - 1 ) / _perRow ) + 1 = g ),
-                    "<td style='padding:6px;border:1px solid #ddd;text-align:center'>" & [SKU] & "</td>",
-                    ""
-                )
-            RETURN "<tr>" & rowCells & "</tr>",
-            ""
-        ) &
-        "</table>"
-    )
-
-VAR _finalHtml =
-    IF (
-        _pos = 0,
-        _desc,
-        "<div style='font-family:Segoe UI;font-size:12px'>" &
-        IF ( NOT ISBLANK ( _nonSKU ), "<div style='margin-bottom:6px'>" & _nonSKU & "</div>", "" ) &
-        _skusTable &
-        "</div>"
-    )
-
-RETURN IF ( LEN ( TRIM ( _finalHtml ) ) = 0, BLANK (), _finalHtml )
+RETURN
+"<div style='font-family:Segoe UI;font-size:12px;line-height:1.4'>" &
+Resultado &
+"</div>"
