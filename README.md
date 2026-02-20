@@ -32,13 +32,17 @@
 
 <p align="left">
 💻 Fullstack Developer focused on Automation, AI and Web Systems<br>
-🎓 Computer Engineering Student at UniNorte (2023–2026)<br>
-🚀 Project Automation Intern at SIDIA<br>
+🎓 B.Sc. in Computer Engineering — UniNorte (2023–2027)<br>
+💻 Computer Technician — IFAM (2018–2020)<br>
+🚀 Project Automation Intern at SIDIA (Corporate Environment)<br>
 📍 Manaus, Brazil<br><br>
-🔭 Currently working with automation, REST APIs, dashboards and fullstack applications<br>
-📚 Learning more about Applied AI, System Architecture and Cloud Computing<br>
-⚡ Main interests: Automation, Artificial Intelligence, Backend and Scalable Solutions
+
+🔭 Currently working with automation, REST APIs, dashboards, CI/CD pipelines and fullstack applications<br>
+📚 Learning more about Applied AI, System Architecture, Cloud Computing and DevOps<br>
+⚡ Main interests: Automation, Artificial Intelligence, Backend, Deploy and Scalable Solutions
 </p>
+
+###
 
 <h3 align="left">🛠 Languages and Technologies</h3>
 
@@ -74,6 +78,8 @@
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" height="40" alt="docker logo" />
   <img width="12" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linux/linux-original.svg" height="40" alt="linux logo" />
+  <img width="12" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jenkins/jenkins-original.svg" height="40" alt="jenkins logo" />
 </div>
 
 ###
@@ -82,10 +88,11 @@
 
 <p align="left">
 🤖 Process Automation (Python & RPA)<br>
-🧠 Applied AI (RAG, NL2SQL, Chatbots)<br>
-🌐 Fullstack Development (React + FastAPI)<br>
-🔗 REST API Integration<br>
+🧠 Applied AI (RAG, NL2SQL, Chatbots with OpenAI)<br>
+🌐 Fullstack Development (React, Next.js, FastAPI, Django)<br>
+🔗 REST API Integration & Backend Systems<br>
 📊 Data Analysis with Python and SQL<br>
+🐳 Deploy, CI/CD and Linux-based Environments<br>
 ☁️ Cloud & Data Engineering (AWS Track)
 </p>
 
